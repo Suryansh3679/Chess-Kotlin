@@ -1,7 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-
+    id ("kotlin-kapt")
 }
 
 android {
@@ -51,6 +51,13 @@ android {
 }
 
 dependencies {
+
+
+
+    // ViewModel and LiveData for Jetpack Compose
+    implementation ("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
+    implementation ("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
+    implementation ("androidx.lifecycle:lifecycle-livedata-ktx:2.6.2")
 
 
     implementation ("androidx.navigation:navigation-compose:2.7.7")
