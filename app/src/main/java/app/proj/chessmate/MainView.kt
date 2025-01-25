@@ -1,16 +1,21 @@
 package app.proj.chessmate
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
@@ -22,21 +27,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun MainView(){
-//    val viewModel : MainViewModel = viewModel()
-//    val score = viewModel.score
-//
-//    Column (modifier = Modifier.fillMaxSize(),
-//        verticalArrangement = Arrangement.Center,
-//        horizontalAlignment = Alignment.CenterHorizontally
-//
-//    ){
-//        Text(score.value.toString(), fontSize = 25.sp)
-//        Button(onClick = { viewModel.increaseScore() }) {
-//            Text(text = "Increase Score")
-//        }
-//    }
     ChessBoard()
-
 }
 
 @Composable
@@ -55,15 +46,27 @@ fun ChessBoard() {
     }
 // Get the board state
 
-    LazyVerticalGrid(columns = GridCells.Fixed(8)) {
+    LazyVerticalGrid(columns = GridCells.Fixed(8),
+        verticalArrangement = Arrangement.Center
+        ) {
         items(chessBoard.size) { index ->
             val piece = chessBoard[index]
-
+            val selectedIndex = remember { mutableStateOf(-1) }
             Box(
                 modifier = Modifier
                     .size(50.dp)
-                    .background(if ((index / 8 + index % 8) % 2 == 0) colorResource(id = R.color.light_green) else colorResource(id = R.color.light_white))
+                    .background(
+                        if ((index / 8 + index % 8) % 2 == 0) colorResource(id = R.color.light_green) else colorResource(
+                            id = R.color.light_white
+                        )
+                    )
                     .draggablePiece(index, chessBoard)
+                    .pointerInput(Unit) {
+                        detectTapGestures (onTap = {
+                            Log.d("Current Index", index.toString())
+                            handleTap(index, chessBoard, selectedIndex)
+                        })
+                    }
             ) {
                 if (piece != ChessPiece.Empty) {
                     Image(
@@ -94,43 +97,23 @@ fun Modifier.draggablePiece(
     }
 }
 
-@Composable
-fun ChessSquare(isDark: Boolean, piece: ChessPiece?) {
-    Box(
-        modifier = Modifier
-            .size(50.dp) // Adjust size for the square
-            .background(if (isDark) colorResource(id = R.color.light_green) else colorResource(id = R.color.light_white))
-            .border(1.dp, Color.Black)
-    ) {
-        piece?.let {
-            // Display the piece (use an image or icon)
-            Image(painter = painterResource(id = it.iconRes), contentDescription = it.name)
-        }
-    }
-}
-// Chessboard initialization function
-fun createChessBoard(): List<ChessPiece> {
-    // Initialize an 8x8 chess board with pieces
-    return List(64) { index ->
-        when (index) {
-            0,7 -> ChessPiece.WRook // Place white rooks
-            1, 6 -> ChessPiece.WKnight // Place white knights
-            2, 5 -> ChessPiece.WBishop // Place white bishops
-            3 -> ChessPiece.WQueen // Place white queen
-            4 -> ChessPiece.WKing // Place white king
-            in 8..15 -> ChessPiece.WPawn // Place white pawns
+fun handleTap(
+    index: Int,
+    board: SnapshotStateList<ChessPiece>,
+    selectedIndex: MutableState<Int>
+) {
+    val selected = selectedIndex.value
 
-            in 48..55 -> ChessPiece.BPawn // Place black pawns
-            56 -> ChessPiece.BRook // Place black rooks
-            57 -> ChessPiece.BKnight // Place black knights
-            58 -> ChessPiece.BBishop // Place black bishops
-            59 -> ChessPiece.BQueen // Place black queen
-            60 -> ChessPiece.BKing // Place black king
-            61 -> ChessPiece.BBishop // Place black bishops
-            62 -> ChessPiece.BKnight // Place black knights
-            63 -> ChessPiece.BRook // Place black rooks
-
-            else -> ChessPiece.Empty// Empty squares
+    if (selected == -1) {
+        // No piece is selected, select this piece if it is not empty
+        if (board[index] != ChessPiece.Empty) {
+            selectedIndex.value = index
         }
+    } else {
+        Log.d("Selected Index",selectedIndex.toString())
+        // A piece is already selected, move it
+        board[index+1] = board[selected] // Move piece to new square
+        board[selected] = ChessPiece.Empty // Clear original square
+        selectedIndex.value = -1 // Clear selection
     }
 }
