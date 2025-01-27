@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshots.SnapshotStateList
@@ -24,48 +23,53 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun MainView(){
-    ChessBoard()
+    val chessViewModel : MainViewModel = viewModel()
+    ChessBoard(chessViewModel)
 }
 
 @Composable
-fun ChessBoard() {
-    val chessBoard = remember {
-        mutableStateListOf(
-            ChessPiece.BRook, ChessPiece.BKnight, ChessPiece.BBishop, ChessPiece.BQueen, ChessPiece.BKing, ChessPiece.BBishop, ChessPiece.BKnight, ChessPiece.BRook,
-            ChessPiece.BPawn, ChessPiece.BPawn, ChessPiece.BPawn, ChessPiece.BPawn, ChessPiece.BPawn, ChessPiece.BPawn, ChessPiece.BPawn, ChessPiece.BPawn,
-            ChessPiece.Empty, ChessPiece.Empty, ChessPiece.Empty, ChessPiece.Empty, ChessPiece.Empty, ChessPiece.Empty, ChessPiece.Empty, ChessPiece.Empty,
-            ChessPiece.Empty, ChessPiece.Empty, ChessPiece.Empty, ChessPiece.Empty, ChessPiece.Empty, ChessPiece.Empty, ChessPiece.Empty, ChessPiece.Empty,
-            ChessPiece.Empty, ChessPiece.Empty, ChessPiece.Empty, ChessPiece.Empty, ChessPiece.Empty, ChessPiece.Empty, ChessPiece.Empty, ChessPiece.Empty,
-            ChessPiece.Empty, ChessPiece.Empty, ChessPiece.Empty, ChessPiece.Empty, ChessPiece.Empty, ChessPiece.Empty, ChessPiece.Empty, ChessPiece.Empty,
-            ChessPiece.WPawn, ChessPiece.WPawn, ChessPiece.WPawn, ChessPiece.WPawn, ChessPiece.WPawn, ChessPiece.WPawn, ChessPiece.WPawn, ChessPiece.WPawn,
-            ChessPiece.WRook, ChessPiece.WKnight, ChessPiece.WBishop, ChessPiece.WQueen, ChessPiece.WKing, ChessPiece.WBishop, ChessPiece.WKnight, ChessPiece.WRook
-        )
-    }
-// Get the board state
+fun ChessBoard(viewModel: MainViewModel) {
+    // Create 2D list of chess pieces (8x8 board)
+    val chessBoard = viewModel.chessBoard
 
-    LazyVerticalGrid(columns = GridCells.Fixed(8),
+    // Keep track of selected position (row, column)
+    val selectedPosition =viewModel.selectedPosition
+
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(8),
         verticalArrangement = Arrangement.Center
-        ) {
-        items(chessBoard.size) { index ->
-            val piece = chessBoard[index]
-            val selectedIndex = remember { mutableStateOf(-1) }
+    ) {
+        items(64) { index ->
+            val row = index / 8
+            val col = index % 8
+            val piece = chessBoard[row][col]
+
             Box(
                 modifier = Modifier
                     .size(50.dp)
                     .background(
-                        if ((index / 8 + index % 8) % 2 == 0) colorResource(id = R.color.light_green) else colorResource(
-                            id = R.color.light_white
-                        )
+                        if ((row + col) % 2 == 0) colorResource(id = R.color.light_green)
+                        else colorResource(id = R.color.light_white)
                     )
-                    .draggablePiece(index, chessBoard)
+                    .border(
+                        width = if (selectedPosition.value == Pair(row, col)) 2.dp else 0.dp,
+                        color = if (selectedPosition.value == Pair(
+                                row,
+                                col
+                            )
+                        ) Color.Blue else Color.Transparent
+                    )
+                    .draggablePiece(row, col, chessBoard)
                     .pointerInput(Unit) {
-                        detectTapGestures (onTap = {
-                            Log.d("Current Index", index.toString())
-                            handleTap(index, chessBoard, selectedIndex)
-                        })
+                        detectTapGestures(
+                            onTap = {
+                                viewModel.handleTap(row, col)
+                            }
+                        )
                     }
             ) {
                 if (piece != ChessPiece.Empty) {
@@ -78,42 +82,27 @@ fun ChessBoard() {
             }
         }
     }
-
 }
 
 fun Modifier.draggablePiece(
-    index: Int,
-    board: SnapshotStateList<ChessPiece> // Correct type to handle reactivity
+    row: Int,
+    col: Int,
+    board:SnapshotStateList<SnapshotStateList<ChessPiece>>
 ): Modifier = this.pointerInput(Unit) {
-    detectDragGestures { change, _ ->
-        change.consume() // Consume the gesture
-        val piece = board[index]
+    detectDragGestures { change, dragAmount ->
+        change.consume()
+        val piece = board[row][col]
 
         if (piece != ChessPiece.Empty) {
-            // Example: Update the board when dragging
-            board[index]= ChessPiece.Empty // Clear the current position
-            board[(index + 8) % 64] = piece // Move the piece to another position (example logic)
-        }
-    }
-}
+            // Calculate new position based on drag amount
+            // This is a simplified example - you might want to implement more sophisticated drag logic
+            val newRow = (row + dragAmount.y.toInt()/20 )
+            val newCol = (col + dragAmount.x.toInt() / 20)
 
-fun handleTap(
-    index: Int,
-    board: SnapshotStateList<ChessPiece>,
-    selectedIndex: MutableState<Int>
-) {
-    val selected = selectedIndex.value
-
-    if (selected == -1) {
-        // No piece is selected, select this piece if it is not empty
-        if (board[index] != ChessPiece.Empty) {
-            selectedIndex.value = index
+            if (newRow != row || newCol != col) {
+                board[newRow][newCol] = piece
+                board[row][col] = ChessPiece.Empty
+            }
         }
-    } else {
-        Log.d("Selected Index",selectedIndex.toString())
-        // A piece is already selected, move it
-        board[index+1] = board[selected] // Move piece to new square
-        board[selected] = ChessPiece.Empty // Clear original square
-        selectedIndex.value = -1 // Clear selection
     }
 }
