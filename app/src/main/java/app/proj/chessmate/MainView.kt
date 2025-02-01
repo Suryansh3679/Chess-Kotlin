@@ -39,13 +39,10 @@ fun MainView(){
 
 @Composable
 fun ChessBoard(viewModel: MainViewModel) {
-    // Create 2D list of chess pieces (8x8 board)
     val chessBoard = viewModel.chessBoard
 
-    // Keep track of selected position (row, column)
     val selectedPosition =viewModel.selectedPosition
 
-    // Button to reset
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,

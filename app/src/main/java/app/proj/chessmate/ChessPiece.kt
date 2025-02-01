@@ -17,3 +17,14 @@ sealed class ChessPiece(val name: String, val iconRes: Int)  {
 
     object Empty : ChessPiece("Empty", R.drawable.empty)
 }
+
+val blackPieces: Set<ChessPiece> = setOf(
+    ChessPiece.BKing, ChessPiece.BQueen, ChessPiece.BRook, ChessPiece.BKnight,
+    ChessPiece.BBishop, ChessPiece.BPawn
+)
+
+val whitePieces: Set<ChessPiece> = setOf(
+    ChessPiece.WKing, ChessPiece.WQueen, ChessPiece.WRook, ChessPiece.WKnight,
+    ChessPiece.WBishop, ChessPiece.WPawn
+)
+
